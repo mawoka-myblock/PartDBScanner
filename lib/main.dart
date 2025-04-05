@@ -173,9 +173,72 @@ class _MainScreenState extends State<MainScreen> {
                     setScannerActivity: setScannerActivity,
                   ),
         ),
+        Align(
+          alignment: Alignment.bottomRight,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: FloatingActionButton(
+              onPressed: () => _manualIdEntryModal(context, _setScannedId),
+              child: Icon(Icons.edit),
+            ),
+          ),
+        ),
       ],
     );
   }
+}
+
+Future<void> _manualIdEntryModal(
+  BuildContext context,
+  void Function(int?) onScannedCode,
+) {
+  return showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      final textKey = TextEditingController();
+      return SimpleDialog(
+        title: const Text("Enter Part ID manually"),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Form(
+              child: Column(
+                children: [
+                  TextFormField(
+                    controller: textKey,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: "Enter ID",
+                    ),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      final parsedInt = int.tryParse(textKey.text);
+                      if (parsedInt == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Input is not a number'),
+                          ),
+                        );
+                        return;
+                      }
+                      onScannedCode(parsedInt);
+                      Navigator.of(context).pop();
+                      return;
+                    },
+                    child: const Text("Go!"),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
 }
 
 class PartQuickActions extends StatefulWidget {
@@ -323,13 +386,15 @@ class _PartQuickActionsState extends State<PartQuickActions> {
                                       textAlign: TextAlign.center,
                                     ),
                                   ),
-
-                                  InputModifiers(
-                                    changeAmount: changeAmount,
-                                    currentlyInStock:
-                                        snapshot.data!.totalInstock!,
-                                    partLotId: snapshot.data!.partLots![0].id,
-                                  ),
+                                  snapshot.data!.partLots?.elementAtOrNull(0)?.id == null
+                                      ? const Text("No stock data!")
+                                      : InputModifiers(
+                                        changeAmount: changeAmount,
+                                        currentlyInStock:
+                                            snapshot.data!.totalInstock!,
+                                        partLotId:
+                                            snapshot.data!.partLots![0].id,
+                                      ),
                                   Center(
                                     child: Text(
                                       snapshot.data!.manufacturer!.name,
